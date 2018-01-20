@@ -51,18 +51,27 @@ workspaces.each do |workspace|
   end
 end
 
+output = ''
 workspaces.each do |workspace|
   next if workspace.projects.flat_map{|p| p.tasks}.length == 0
-  puts workspace.name
+  output += "#{workspace.name}\n"
   workspace.projects.each do |project|
     tasks = project.tasks.reject{|t| t.completed}
     next if tasks.length == 0
-    puts " #{project.name}"
+    output += " #{project.name}\n"
     tasks.each do |task|
       task_str = " - #{task.name}"
       task_str += " (#{task.due_on})" if task.due_on
-      puts task_str
+      output += "#{task_str}\n"
     end
   end
-  puts ""
+  output += "\n"
 end; 0
+
+
+file = File.open('daily.txt', 'w')
+file << output
+file.close
+
+`scp daily.txt pi@192.168.1.140:/home/pi`
+`ssh -t pi@192.168.1.140 "lp -d HP_LaserJet_P1006 /home/pi/daily.txt"`
