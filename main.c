@@ -15,28 +15,24 @@ typedef struct {
   task *tasks;
 } project;
 
-typedef struct {
+typedef struct workspace {
   unsigned long int id;
   char *name;
   project *projects;
+
+  struct workspace *next;
 } workspace_t;
 
 
 char *http_read_buffer = NULL;
+workspace_t *workspace_head = NULL;
 
-workspace_t *workspaces;
-
-size_t workspace_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
-  printf("in write callback...");
-  printf("%lu\n", size);
-  printf("%lu\n", nmemb);
-
+size_t http_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
   size_t read_bytes = size * nmemb;
   if(!http_read_buffer) {
     http_read_buffer = calloc(nmemb + 1, size);
     strncpy(http_read_buffer, ptr, read_bytes);
   }
-  printf("%s\n", http_read_buffer);
   return read_bytes;
 }
 
@@ -54,7 +50,14 @@ void parse_workspace(workspace_t *ws, json_t *data) {
   strcpy(ws->name, name_str);
 }
 
-int fetch_workspaces(workspace_t **workspaces) {
+typedef enum {
+  FETCH_OK,
+  FETCH_ERROR
+} fetch_result_t;
+
+int fetch_workspaces(char **json) {
+  fetch_result_t res = FETCH_OK;
+
   curl_global_init(CURL_GLOBAL_ALL);
 
   CURL *curl = curl_easy_init();
@@ -65,58 +68,88 @@ int fetch_workspaces(workspace_t **workspaces) {
     list = curl_slist_append(list, "Authorization: Bearer 0/8b82d327dee3f3d31bc6afa6575a5a54");
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
 
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, workspace_write_callback);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, http_write_callback);
 
-    CURLcode res = curl_easy_perform(curl);
-    printf("res: %d\n", res);
-    if(res == CURLE_OK) {
-      json_t *root;
-      json_error_t error;
-      root = json_loads(http_read_buffer, 0, &error);
-      free(http_read_buffer);
-
-      json_t *data = json_object_get(root, "data");
-
-      uint workspace_count = json_array_size(data);
-      *workspaces = calloc(workspace_count + 1, sizeof(workspace_t));
-
-
-      printf("Workspace count: %d\n", workspace_count);
-      for(uint i = 0; i < workspace_count; i++ ) {
-        json_t *workspace_data = json_array_get(data, i);
-        parse_workspace(&(*workspaces)[i], workspace_data);
-      }
+    CURLcode curl_res = curl_easy_perform(curl);
+    if(CURLE_OK == curl_res) {
+      *json = malloc(strlen(http_read_buffer));
+      strcpy(*json, http_read_buffer);
     } else {
-      fprintf(stderr, "An error occurred downloading: %d", res);
-      return -1;
+      res = FETCH_ERROR;
     }
+  } else {
+    res = FETCH_ERROR;
+  }
 
-    curl_easy_cleanup(curl);
+  if(http_read_buffer) {
+    free(http_read_buffer);
+    http_read_buffer = NULL;
+  }
+
+  curl_easy_cleanup(curl);
+  return res;
+}
+
+int load_workspaces(workspace_t **head) {
+  char *json = NULL;
+
+  if(fetch_workspaces(&json) == FETCH_OK) {
+    json_t *root;
+    json_error_t error;
+    root = json_loads(json, 0, &error);
+    free(json);
+
+    json_t *data = json_object_get(root, "data");
+
+    uint workspace_count = json_array_size(data);
+
+    workspace_t *ws_last = NULL;
+
+    for(uint i = 0; i < workspace_count; i++ ) {
+      workspace_t *ws = NULL;
+      if(NULL == *head) {
+        *head = calloc(1, sizeof(workspace_t));
+        ws = *head;
+      } else {
+        ws = calloc(1, sizeof(workspace_t));
+      }
+      json_t *workspace_data = json_array_get(data, i);
+      parse_workspace(ws, workspace_data);
+
+      if(ws_last) {
+        ws_last->next = ws;
+      }
+      ws_last = ws;
+    }
+  } else {
+    fprintf(stderr, "An error occurred downloading");
+    return -1;
   }
   return 0;
 }
 
-int main() {
-  fetch_workspaces(&workspaces);
+void free_workspaces(workspace_t *workspace) {
+  workspace_t *ws_next;
 
-  printf("*workspaces: %lu\n", sizeof(*workspaces));
-  printf("workspaces[0]: %lu\n", sizeof(workspaces[0]));
-  printf("workspace_t: %lu\n", sizeof(workspace_t));
-  uint ws_id = 0;
-  workspace_t *ws;
-  ws = &workspaces[ws_id];
-  while(ws) {
-    ws_id++;
+  while(workspace) {
+    ws_next = workspace->next;
 
-    printf("IDX: %d\n", ws_id);
-    printf("ID: %lu\n", ws->id);
-    printf("Name: %s\n", ws->name);
-
-    ws = &workspaces[ws_id];
-
-    if(ws_id >= 7) {
-      break;
-    }
+    free(workspace->name);
+    free(workspace);
+    workspace = ws_next;
   }
+}
+
+int main() {
+  load_workspaces(&workspace_head);
+  
+  workspace_t *ws = workspace_head;
+  while(ws) {
+    printf("%lu\t%s\n", ws->id, ws->name);
+    ws = ws->next;
+  }
+
+  free_workspaces(workspace_head);
+
   return 0;
 }
