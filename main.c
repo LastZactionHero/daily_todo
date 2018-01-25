@@ -55,6 +55,14 @@ typedef enum {
   FETCH_ERROR
 } fetch_result_t;
 
+void build_authorization_header(char **header) {
+  const char* prefix = "Authorization: Bearer ";
+  const char* token = getenv("ASANA_DAILY_TODO_TOKEN");
+
+  *header = malloc(strlen(prefix) + strlen(token) + 1);
+  sprintf(*header, "%s%s", prefix, token);
+}
+
 int fetch_workspaces(char **json) {
   fetch_result_t res = FETCH_OK;
 
@@ -65,7 +73,12 @@ int fetch_workspaces(char **json) {
     curl_easy_setopt(curl, CURLOPT_URL, "https://app.asana.com/api/1.0/workspaces");
 
     struct curl_slist *list = NULL;
-    list = curl_slist_append(list, "Authorization: Bearer 0/8b82d327dee3f3d31bc6afa6575a5a54");
+
+    char *authorization_header = NULL;
+    build_authorization_header(&authorization_header);
+    list = curl_slist_append(list, authorization_header);
+    free(authorization_header);
+
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, http_write_callback);
