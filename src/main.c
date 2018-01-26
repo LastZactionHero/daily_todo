@@ -1,24 +1,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-// #include <jansson.h>
 #include "./projects.h"
 
-typedef struct {
-  char *id;
-  char *name;
-} task;
-
-typedef struct {
-  char *id;
-  char *name;
-  // task *tasks;
-} project_t;
+// typedef struct {
+//   char *id;
+//   char *name;
+// } task;
 
 project_t *projects_head = NULL;
 
 int main() {
-  load_projects();
+  load_projects(&projects_head);
+
+  project_t *project = projects_head;
+  while(project) {
+    print_project(project);
+    project = project->next;
+  }
   return 0;
 }
 
