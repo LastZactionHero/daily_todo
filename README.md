@@ -19,6 +19,5 @@ aclocal
 autoconf
 automake --add-missing --foreign
 ./configure
-make
-make install
+make daily_todo
 ```
