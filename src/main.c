@@ -1,14 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-// #include <curl/curl.h>
 // #include <jansson.h>
 #include "./projects.h"
-
-typedef enum {
-  FETCH_OK,
-  FETCH_ERROR
-} fetch_result_t;
 
 typedef struct {
   char *id;
