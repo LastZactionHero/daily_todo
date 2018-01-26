@@ -12,3 +12,13 @@ The project will be run on a Rasperry Pi used as my networked printer (CUPS).
   - Associate to project
 - Blacklist projects
 - Post to printer
+
+
+```
+aclocal
+autoconf
+automake --add-missing --foreign
+./configure
+make
+make install
+```
