@@ -1,0 +1,5 @@
+cmake_minimum_required (VERSION 3.10.2)
+project (daily_todo)
+add_executable(daily_todo ./src/main.c ./src/projects.c ./src/fetch.c)
+target_link_libraries(daily_todo curl)
+target_link_libraries(daily_todo jansson)
