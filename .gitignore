@@ -19,3 +19,4 @@ Makefile
 Makefile.am
 Makefile.in
 .dirstamp
+.deps
