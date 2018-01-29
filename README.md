@@ -15,9 +15,6 @@ The project will be run on a Rasperry Pi used as my networked printer (CUPS).
 
 
 ```
-aclocal
-autoconf
-automake --add-missing --foreign
-./configure
-make daily_todo
+cmake .
+make
 ```
