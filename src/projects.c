@@ -4,9 +4,24 @@
 #include <jansson.h>
 #include "./projects.h"
 #include "./fetch.h"
+#include <math.h>
 
 void parse_projects(project_t **head, char *json);
 void parse_project(project_t *project, json_t *data);
+
+void whitelist_projects(project_t *projects_head, unsigned long int *whitelist_ids) {
+  project_t *project = projects_head;
+  while(project) {
+    unsigned int whitelist_ctr = 0;
+    while(*(whitelist_ids+whitelist_ctr)) {
+      if(project->id == *(whitelist_ids+whitelist_ctr)) {
+        project->whitelisted = true;
+      }
+      whitelist_ctr++;
+    }    
+    project = project->next;
+  }
+}
 
 void load_projects(project_t **head) {
   printf("Fetching Projects...\n");
@@ -14,6 +29,29 @@ void load_projects(project_t **head) {
   char *json = NULL;
   if(FETCH_OK == fetch("https://app.asana.com/api/1.0/projects", &json)) {
     parse_projects(head, json);    
+  }
+  if(json) {
+    free(json);
+  }
+}
+
+void load_project_tasks(project_t *project) {
+  printf("Fetching tasks for %s\n", project->name);
+
+  char *json = NULL;
+
+  const char project_tasks_path[] = "https://app.asana.com/api/1.0/projects/%lu/tasks";
+  int length = (int)floor(log10((float)project->id)) + 1;
+
+  char *url = malloc(strlen(project_tasks_path) + length + 1);
+  sprintf(url, project_tasks_path, project->id);
+
+  printf("%s\n", url);
+
+
+  // char *url 
+  if(FETCH_OK == fetch(url, &json)) {
+    printf("%s\n", json);
   }
   if(json) {
     free(json);
@@ -65,5 +103,5 @@ void parse_project(project_t *project, json_t *data) {
 }
 
 void print_project(project_t *project) {
-  printf("%lu: %s\n", project->id, project->name);
+  printf("%lu (%d): %s\n", project->id, project->whitelisted, project->name);
 }
