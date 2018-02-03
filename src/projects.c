@@ -28,8 +28,6 @@ project_t* load_projects() {
   project_t *head = NULL;
   char *json = NULL;
 
-  // TODO: Large project (Zach's todo) not fully loaded
-
   if(FETCH_OK == fetch("https://app.asana.com/api/1.0/projects", &json)) {
     head = parse_projects(json);
   }
@@ -50,7 +48,6 @@ void load_project_tasks(project_t *project) {
   sprintf(url, project_tasks_path, project->id);
 
   if(FETCH_OK == fetch(url, &json)) {
-    printf("%s\n", json);
     project->tasks_head = parse_tasks(json);
   }
   if(json) {

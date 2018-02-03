@@ -17,8 +17,18 @@ void build_authorization_header(char **header) {
 size_t http_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
   size_t read_bytes = size * nmemb;
   if(!http_read_buffer) {
+    // Allocate the read buffer
     http_read_buffer = calloc(nmemb + 1, size);
     strncpy(http_read_buffer, ptr, read_bytes);
+  } else {
+    // Allocate a new read buffer and append
+    char *append_read_buffer = calloc(nmemb + strlen(http_read_buffer) + 1, size);
+
+    strncpy(append_read_buffer, http_read_buffer, strlen(http_read_buffer));
+    strncpy(&append_read_buffer[strlen(http_read_buffer)], ptr, read_bytes);
+
+    free(http_read_buffer);
+    http_read_buffer = append_read_buffer;
   }
   return read_bytes;
 }
