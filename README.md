@@ -4,13 +4,13 @@ As part of a my pursuit of decoupling from the smartphone, this application down
 
 The project will be run on a Rasperry Pi used as my networked printer (CUPS).
 
-[X] Load Projects
-[] Load Tasks
-[] Write a document containing:
-  [] Incomplete tasks
-  [] Due dates
-  [] Associate to project
-[X] Whitelist projects
+- Load Projects
+- Load Tasks
+- Write a document containing:
+  - Incomplete tasks
+  - Due dates
+  - Associate to project
+- Blacklist projects
 - Post to printer
 
 
