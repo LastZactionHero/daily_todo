@@ -1,3 +1,5 @@
+#ifndef PROJECTS_H
+#define PROJECTS_H
 #include <stdbool.h>
 #include "./tasks.h"
 
@@ -13,3 +15,4 @@ void load_projects(project_t **head);
 void load_project_tasks(project_t *project);
 void print_project(project_t *project);
 void whitelist_projects(project_t *project, unsigned long int *whitelist_ids);
+#endif
