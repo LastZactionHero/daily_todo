@@ -1,12 +1,13 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <jansson.h>
 #include "./projects.h"
 #include "./fetch.h"
-#include <math.h>
+#include "./tasks.h"
 
-void parse_projects(project_t **head, char *json);
+project_t* parse_projects(char *json);
 void parse_project(project_t *project, json_t *data);
 
 void whitelist_projects(project_t *projects_head, unsigned long int *whitelist_ids) {
@@ -23,21 +24,23 @@ void whitelist_projects(project_t *projects_head, unsigned long int *whitelist_i
   }
 }
 
-void load_projects(project_t **head) {
-  printf("Fetching Projects...\n");
-
+project_t* load_projects() {
+  project_t *head = NULL;
   char *json = NULL;
+
+  // TODO: Large project (Zach's todo) not fully loaded
+
   if(FETCH_OK == fetch("https://app.asana.com/api/1.0/projects", &json)) {
-    parse_projects(head, json);    
+    head = parse_projects(json);
   }
   if(json) {
     free(json);
   }
+
+  return head;
 }
 
 void load_project_tasks(project_t *project) {
-  printf("Fetching tasks for %s\n", project->name);
-
   char *json = NULL;
 
   const char project_tasks_path[] = "https://app.asana.com/api/1.0/projects/%lu/tasks";
@@ -46,23 +49,21 @@ void load_project_tasks(project_t *project) {
   char *url = malloc(strlen(project_tasks_path) + length + 1);
   sprintf(url, project_tasks_path, project->id);
 
-  printf("%s\n", url);
-
-
-  // char *url 
   if(FETCH_OK == fetch(url, &json)) {
     printf("%s\n", json);
+    project->tasks_head = parse_tasks(json);
   }
   if(json) {
     free(json);
   }
 }
 
-void parse_projects(project_t **head, char *json) {
+project_t* parse_projects(char *json) {
   json_t *root;
   json_error_t error;
   root = json_loads(json, 0, &error);
 
+  project_t *head = NULL;
   json_t *data = json_object_get(root, "data");
   unsigned int projects_count = json_array_size(data);
 
@@ -70,9 +71,9 @@ void parse_projects(project_t **head, char *json) {
 
   for(unsigned int i = 0; i < projects_count; i++ ) {
     project_t *project = NULL;
-    if(NULL == *head) {
-      *head = calloc(1, sizeof(project_t));
-      project = *head;
+    if(NULL == head) {
+      head = calloc(1, sizeof(project_t));
+      project = head;
     } else {
       project = calloc(1, sizeof(project_t));
     }
@@ -86,6 +87,7 @@ void parse_projects(project_t **head, char *json) {
   }
 
   json_decref(root);
+  return head;
 }
 
 void parse_project(project_t *project, json_t *data) {
@@ -104,4 +106,10 @@ void parse_project(project_t *project, json_t *data) {
 
 void print_project(project_t *project) {
   printf("%lu (%d): %s\n", project->id, project->whitelisted, project->name);
+  
+  task_t *task = project->tasks_head;
+  while(task) {
+    printf("- %lu: %s\n", task->id, task->name);
+    task = task->next;
+  }
 }

@@ -11,7 +11,7 @@ typedef struct project {
   struct project *next;  
 } project_t;
 
-void load_projects(project_t **head);
+project_t* load_projects();
 void load_project_tasks(project_t *project);
 void print_project(project_t *project);
 void whitelist_projects(project_t *project, unsigned long int *whitelist_ids);
